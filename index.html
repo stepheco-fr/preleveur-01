@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Préleveur – Planificateur d’échantillonnage</title>
+  <meta name="description" content="Calcule les volumes d’échantillons et intervalles (temps ou débit) pour un préleveur automatique. 100% hors-ligne.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#22c55e">
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22c55e; --accent2:#16a34a;
+      --ring:rgba(34,197,94,.35); --radius:16px; --card:#0b1220;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial; background: radial-gradient(1000px 700px at 90% -10%, #133023 0%, transparent 60%), radial-gradient(900px 700px at -10% 10%, #11243a 0%, transparent 55%), var(--bg); color:var(--text)}
+    header{max-width:980px;margin:24px auto 8px;padding:0 16px}
+    .title{font-weight:800;letter-spacing:.3px;font-size: clamp(22px,3vw,34px)}
+    .subtitle{color:var(--muted);margin-top:6px}
+    main{max-width:980px;margin:0 auto 64px;padding:16px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+    .card{background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(148,163,184,.12); border-radius:var(--radius); padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0 0 10px;font-size:18px}
+    .row{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end;margin-bottom:10px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    .input,.select{background:var(--card);border:1px solid rgba(148,163,184,.18);border-radius:12px;color:var(--text);padding:12px 14px;width:100%;font-size:15px;outline:none;transition:box-shadow .15s ease,border-color .15s ease}
+    .input:focus,.select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+    .unit{ text-align:center; background: rgba(148,163,184,.1); border:1px dashed rgba(148,163,184,.2); color:var(--muted); border-radius:12px; padding:10px; font-size:13px }
+    .btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid rgba(34,197,94,.25);padding:12px 16px;border-radius:999px;background: linear-gradient(180deg, var(--accent), var(--accent2));color:white;font-weight:700;letter-spacing:.2px;text-decoration:none;transition:transform .06s ease, filter .15s ease}
+    .btn:hover{filter:brightness(1.05)} .btn:active{transform:translateY(1px)}
+    .result{background:linear-gradient(180deg, rgba(34,197,94,.10), rgba(34,197,94,.04)); border:1px solid rgba(34,197,94,.35); border-radius:var(--radius); padding:16px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; white-space: pre-wrap}
+    .muted{color:var(--muted);font-size:13px}
+    .sectionTitle{margin-top:12px;margin-bottom:6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.16em}
+    .toggle{display:flex;gap:10px;align-items:center}
+    .footer{color:var(--muted);font-size:12px;line-height:1.6;margin-top:8px}
+    .modeSwitch{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .hint{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">Préleveur – Planificateur d’échantillonnage</div>
+    <div class="subtitle">Entrez le <em>nombre d’échantillons</em> et le <em>volume du flacon</em>, puis choisissez <strong>asservissement au temps</strong> ou <strong>au débit</strong>. Fonctionne hors-ligne (PWA).</div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="card" id="controls">
+        <h2>Paramètres</h2>
+
+        <div class="modeSwitch">
+          <label class="toggle"><input type="radio" name="mode" value="time" checked> <span>Asservissement au temps</span></label>
+          <label class="toggle"><input type="radio" name="mode" value="flow"> <span>Asservissement au débit</span></label>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="minSamples">Nombre d’échantillons (min.)</label>
+            <input id="minSamples" class="input" type="number" min="1" step="1" value="24">
+          </div>
+          <div class="unit"># échantillons</div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="bottleVolume">Volume du flacon</label>
+            <div style="display:flex; gap:8px">
+              <input id="bottleVolume" class="input" type="number" min="0" step="1" value="1000" style="flex:1">
+              <select id="bottleUnit" class="select" style="width:110px">
+                <option value="mL" selected>mL</option>
+                <option value="L">L</option>
+              </select>
+            </div>
+          </div>
+          <div class="unit">Ex: 1000 mL</div>
+        </div>
+
+        <div id="panelTime">
+          <div class="row">
+            <div>
+              <label for="durationMin">Durée de la campagne (min)</label>
+              <input id="durationMin" class="input" type="number" min="1" step="1" value="1440">
+              <div class="hint">Par défaut : 1440 min = 24 h</div>
+            </div>
+            <div class="unit">minutes</div>
+          </div>
+        </div>
+
+        <div id="panelFlow" style="display:none">
+          <div class="row">
+            <div>
+              <label for="flowValue">Débit observé</label>
+              <div style="display:flex; gap:8px">
+                <input id="flowValue" class="input" type="number" min="0" step="0.001" value="10" style="flex:1">
+                <select id="flowUnit" class="select" style="width:110px">
+                  <option value="m3/h">m³/h</option>
+                  <option value="L/s">L/s</option>
+                  <option value="L/min">L/min</option>
+                  <option value="m3/s">m³/s</option>
+                </select>
+              </div>
+              <div class="hint">La durée de campagne par défaut est 24 h (1440 min) pour le calcul de l’intervalle de volume.</div>
+            </div>
+            <div class="unit">débit</div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="durationMin">Durée campagne (min) – optionnelle</label>
+              <input id="durationMin" class="input" type="number" min="1" step="1" value="1440">
+            </div>
+            <div class="unit">minutes</div>
+          </div>
+        </div>
+
+        <div class="sectionTitle">Arrondis pratiques</div>
+        <div class="row">
+          <div>
+            <label>Arrondir volume d’échantillon</label>
+            <div style="display:flex; gap:8px; align-items:center">
+              <input id="doRoundVol" type="checkbox" checked> <span class="muted">À</span>
+              <input id="roundVolStep" class="input" type="number" min="1" step="1" value="10" style="width:120px">
+              <span class="muted">mL</span>
+            </div>
+          </div>
+          <div class="unit">ex: pas de 10 mL</div>
+        </div>
+        <div id="roundTimeBlock">
+          <div class="row">
+            <div>
+              <label>Arrondir intervalle de temps</label>
+              <div style="display:flex; gap:8px; align-items:center">
+                <input id="doRoundTime" type="checkbox" checked> <span class="muted">À</span>
+                <input id="roundTimeStep" class="input" type="number" min="1" step="1" value="1" style="width:120px">
+                <span class="muted">minute(s)</span>
+              </div>
+            </div>
+            <div class="unit">ex: pas de 1 min</div>
+          </div>
+        </div>
+        <div id="roundVolIntervalBlock" style="display:block">
+          <div class="row">
+            <div>
+              <label>Arrondir intervalle de volume</label>
+              <div style="display:flex; gap:8px; align-items:center">
+                <input id="doRoundVolInterval" type="checkbox" checked> <span class="muted">À</span>
+                <input id="roundVolIntervalStepL" class="input" type="number" min="0.1" step="0.1" value="1" style="width:120px">
+                <span class="muted">L</span>
+              </div>
+            </div>
+            <div class="unit">ex: pas de 1 L</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Résultats</h2>
+        <div id="results" class="result">En attente…</div>
+        <div style="margin-top:12px">
+          <button class="btn" id="shareBtn">🔗 Copier l’état (URL)</button>
+          <button class="btn" id="installBtn" title="Ajouter à l’écran d’accueil">📲 Installer</button>
+        </div>
+        <p class="footer">Hypothèses : <strong>volume par échantillon = volume du flacon / nombre d’échantillons</strong>. Mode <em>temps</em> : intervalle = durée / nombre d’échantillons. Mode <em>débit</em> : intervalle de volume = (débit × durée) / nombre d’échantillons. Durée par défaut = 24 h.</p>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Partage état
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        alert('Lien copié dans le presse-papiers.');
+      } catch {
+        alert('Lien prêt : ' + location.href);
+      }
+    });
+
+    // A2HS (Add to Home Screen) prompt handling
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      } else {
+        alert('Sur iOS : partager → “Sur l’écran d’accueil”. Sur Android/Chrome : menu → “Installer l’application”.');
+      }
+    });
+  </script>
+</body>
+</html>

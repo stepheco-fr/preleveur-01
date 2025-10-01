@@ -140,8 +140,8 @@
     const setChk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!Number(v); };
 
     const m = p.get('mode'); if (m) { const radio = document.querySelector(`input[name="mode"][value="${m}"]`); if (radio) radio.checked = true; }
-    setVal('minSamples', p.get('n') || 24);
-    setVal('bottleVolume', p.get('bv') || 1000);
+    setVal('minSamples', p.get('n') || 150);
+    setVal('bottleVolume', p.get('bv') || 12000);
     setVal('bottleUnit', p.get('bvu') || 'mL');
     setVal('durationMin', p.get('dur') || 1440);
     setVal('flowValue', p.get('q') || 10);

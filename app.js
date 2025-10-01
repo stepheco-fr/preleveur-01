@@ -4,8 +4,8 @@
 
   const state = {
     mode: 'time', // 'time' | 'flow'
-    minSamples: 24,
-    bottleVolume: 1000, // default mL
+    minSamples: 150,
+    bottleVolume: 12000, // default mL
     bottleUnit: 'mL',   // 'mL' | 'L'
     durationMin: 1440,  // minutes (1 day)
     flowValue: 10,      // default
